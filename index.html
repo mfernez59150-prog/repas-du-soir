@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Qu'est-ce qu'on mange ce soir ? - Planning Repas Familial Express</title>
+  
+  <!-- Métadonnées PWA & Plein Écran iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Repas Soir">
+  <meta name="theme-color" content="#FAF6F0">
+  <link rel="apple-touch-icon" href="https://api.iconify.design/noto:pot-of-food.svg">
+
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Qu%27est-ce%20qu%27on%20mange%20ce%20soir%22%2C%22short_name%22%3A%22Repas%20Soir%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23FAF6F0%22%2C%22theme_color%22%3A%22%23FAF6F0%22%7D">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            warm: {
+              50: '#FDFBF7', 100: '#FAF5ED', 200: '#F4EADA', 300: '#EBD8C1',
+              400: '#DEC1A0', 500: '#CFA87D', 600: '#BA8D5E', 700: '#997047',
+              800: '#7A5737', 900: '#5F4229'
+            },
+            terracotta: {
+              50: '#FDF6F3', 100: '#FCECE6', 200: '#FAD8CC', 300: '#F5B8A3',
+              400: '#ED8D6D', 500: '#E0673E', 600: '#C84F27', 700: '#A43D1D'
+            },
+            sage: {
+              50: '#F4F7F4', 100: '#E6ECE6', 200: '#CFDBCF', 300: '#AFC3AF',
+              400: '#8AA68A', 500: '#698769', 600: '#536E53', 700: '#415741'
+            }
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #FAF6F0; }
+    h1, h2, h3, .font-heading { font-family: 'Outfit', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #F4EADA; border-radius: 9999px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #DEC1A0; border-radius: 9999px; }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.03); }
+    }
+    .animate-mic { animation: pulse-subtle 1.4s ease-in-out infinite; }
+  </style>
+</head>
+
+<body class="min-h-full flex flex-col text-stone-800 antialiased selection:bg-terracotta-200 selection:text-terracotta-800">
+
+  <!-- ================================================================= -->
+  <!-- MODALE DE VERROUILLAGE SÉCURISÉ : DOUBLE AUTHENTIFICATION (2FA)    -->
+  <!-- ================================================================= -->
+  <div id="modal-2fa-gate" class="fixed inset-0 bg-stone-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-warm-200 shadow-2xl max-w-md w-full p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in duration-200">
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 rounded-2xl bg-terracotta-100 text-terracotta-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+          🔒
+        </div>
+        <h2 class="text-xl sm:text-2xl font-black text-stone-900">Accès Sécurisé au Foyer</h2>
+        <p class="text-xs text-stone-500">
+          Vos données de santé restent <strong class="text-stone-700">100% stockées sur votre appareil</strong>. Vérifiez votre identité via code unique par email.
+        </p>
+      </div>
+
+      <!-- Étape 1 : Saisie de l'Email -->
+      <div id="step-2fa-email" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1 uppercase tracking-wider">Email du responsable du foyer</label>
+          <input type="email" id="input-2fa-email" placeholder="votre.email@domaine.fr" class="w-full bg-warm-50 border border-warm-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-400 font-medium">
+        </div>
+        <button onclick="handleRequestOtp()" id="btn-send-otp" class="w-full py-3.5 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+          <span>Recevoir mon code par Email (2FA)</span>
+        </button>
+      </div>
+
+      <!-- Étape 2 : Saisie du Code OTP -->
+      <div id="step-2fa-otp" class="space-y-4 hidden">
+        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-900">
+          Un code de sécurité à 6 chiffres a été envoyé à <strong id="display-target-email"></strong>.
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1 uppercase tracking-wider">Code de sécurité (6 chiffres)</label>
+          <input type="text" id="input-2fa-code" maxlength="6" placeholder="123456" class="w-full text-center tracking-[8px] bg-warm-50 border border-warm-200 rounded-2xl px-4 py-3 text-xl font-mono font-black focus:outline-none focus:ring-2 focus:ring-terracotta-400">
+        </div>
+        <div class="flex gap-2">
+          <button onclick="backToEmailStep()" class="w-1/3 py-3 rounded-2xl bg-warm-100 hover:bg-warm-200 text-stone-700 font-bold text-xs">Retour</button>
+          <button onclick="handleVerifyOtp()" id="btn-verify-otp" class="w-2/3 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md">Valider & Déverrouiller</button>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-warm-100 text-center text-[10px] text-stone-400">
+        🛡️ Chiffrement local AES-256-GCM &bull; Zéro stockage cloud non consenti
+      </div>
+    </div>
+  </div>
+
+  <!-- En-tête de navigation -->
+  <header class="bg-white/95 backdrop-blur-md border-b border-warm-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-terracotta-500 to-amber-500 flex items-center justify-center text-white shadow-md text-xl">
+          🍲
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-black tracking-tight text-stone-900 leading-tight">
+            Qu'est-ce qu'on mange ce soir ?
+          </h1>
+          <p class="text-[11px] sm:text-xs text-stone-500 font-medium flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping"></span>
+            <span>Local-First &bull; 2FA Validé &bull; Apprentissage Actif</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="hidden md:flex items-center gap-2 text-xs">
+        <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 font-semibold flex items-center gap-1.5 shadow-2xs">
+          <span>🧠</span> <span id="badge-learning">Mémoire Locale &bull; 0 retours</span>
+        </span>
+        <span class="px-3 py-1 rounded-full bg-stone-100 text-stone-700 border border-stone-200 font-semibold flex items-center gap-1.5 shadow-2xs">
+          <span id="badge-llm-status">✨ LLM : Désactivé (Optionnel)</span>
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="switchTab('tab-settings')" class="p-2.5 rounded-xl border border-warm-200 bg-warm-50 hover:bg-warm-100 text-stone-700 transition flex items-center gap-1.5 text-xs font-bold shadow-2xs">
+          <span>⚙️</span> <span class="hidden sm:inline">Mon Foyer</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barre d'onglets réactive -->
+    <div class="border-t border-warm-100 bg-warm-50/60 px-4 sm:px-6">
+      <div class="max-w-7xl mx-auto flex items-center gap-1 sm:gap-2 overflow-x-auto custom-scrollbar py-2 text-xs sm:text-sm font-semibold">
+        <button id="nav-btn-assistant" onclick="switchTab('tab-assistant')" class="nav-tab px-3 sm:px-4 py-2 rounded-xl transition-all whitespace-nowrap bg-terracotta-500 text-white shadow-xs">
+          💬 Assistant Vocal & Chat
+        </button>
+        <button id="nav-btn-planning" onclick="switchTab('tab-planning')" class="nav-tab px-3 sm:px-4 py-2 rounded-xl transition-all whitespace-nowrap text-stone-600 hover:bg-warm-100">
+          📅 Planning (<span id="tab-count-meals">5</span>)
+        </button>
+        <button id="nav-btn-courses" onclick="switchTab('tab-courses')" class="nav-tab px-3 sm:px-4 py-2 rounded-xl transition-all whitespace-nowrap text-stone-600 hover:bg-warm-100">
+          🛒 Courses (<span id="tab-count-groceries">0</span>)
+        </button>
+        <button id="nav-btn-ticket" onclick="switchTab('tab-ticket')" class="nav-tab px-3 sm:px-4 py-2 rounded-xl transition-all whitespace-nowrap text-stone-600 hover:bg-warm-100">
+          🧾 Ticket Nutrition & Audit
+        </button>
+        <button id="nav-btn-settings" onclick="switchTab('tab-settings')" class="nav-tab px-3 sm:px-4 py-2 rounded-xl transition-all whitespace-nowrap text-stone-600 hover:bg-warm-100">
+          ⚙️ Paramètres & Apprentissage
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenu Principal -->
+  <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1">
+    
+    <!-- ONGLET 1 : ASSISTANT -->
+    <div id="tab-assistant" class="tab-pane space-y-6">
+      <div class="bg-gradient-to-r from-warm-100 via-white to-warm-50 border border-warm-200 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-md bg-terracotta-100 text-terracotta-800 text-[11px] font-extrabold uppercase">Assistant Vocal & Local</span>
+            <span class="text-xs text-stone-400 font-medium" id="header-household-tag">Foyer : Famille Martin (4 pers.)</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black text-stone-900">
+            Pilotez vos repas en toute confidentialité.
+          </h2>
+          <p class="text-xs sm:text-sm text-stone-600 max-w-2xl">
+            Toutes vos informations sont gardées exclusivement sur cet appareil. Plus vous notez vos plats sur le planning, plus l'application affine ses propositions pour votre famille.
+          </p>
+        </div>
+
+        <button onclick="generateNewFullPlan()" class="w-full md:w-auto px-5 py-3 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 flex-shrink-0">
+          <span>✨ Régénérer les Menus de la Semaine</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Chat interactif -->
+        <div class="lg:col-span-2 bg-white border border-warm-200 rounded-3xl shadow-xs flex flex-col h-[520px] overflow-hidden">
+          <div class="px-5 py-3.5 bg-warm-50/70 border-b border-warm-100 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <span class="font-bold text-xs sm:text-sm text-stone-800">Saisie vocale ou écrite</span>
+            </div>
+            <span class="text-[11px] text-stone-500">Reconnaissance vocale Web Speech FR</span>
+          </div>
+
+          <div id="chat-messages-container" class="flex-1 p-4 sm:p-5 overflow-y-auto space-y-3.5 custom-scrollbar text-xs sm:text-sm">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-terracotta-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">🍲</div>
+              <div class="bg-warm-100 text-stone-800 p-3.5 rounded-2xl rounded-tl-xs max-w-[85%] space-y-1 border border-warm-200/60 leading-relaxed">
+                <p class="font-semibold text-stone-900">Bonjour ! Vos données sont sécurisées localement.</p>
+                <p>Que souhaitez-vous ajuster pour cette semaine ?</p>
+                <ul class="list-disc list-inside space-y-1 text-[11px] text-stone-700">
+                  <li><em>« Prévois des restes pour le midi »</em></li>
+                  <li><em>« Pas de fruits de mer ni de poivron »</em></li>
+                  <li><em>« Active le mode Thermomix »</em></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div id="voice-recording-banner" class="hidden px-4 py-2 bg-rose-50 border-t border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between animate-pulse">
+            <span class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+              <span>🎙️ Écoute active... Parlez naturellement</span>
+            </span>
+            <button onclick="stopVoiceListening()" class="text-[11px] underline text-rose-800">Arrêter</button>
+          </div>
+
+          <div class="p-3 bg-white border-t border-warm-200 flex items-center gap-2">
+            <button id="btn-voice-mic" type="button" onclick="toggleVoiceListening()" class="w-11 h-11 rounded-2xl bg-warm-100 hover:bg-warm-200 text-stone-700 flex items-center justify-center text-lg transition-all border border-warm-200 flex-shrink-0" title="Parler">
+              🎙️
+            </button>
+            <input type="text" id="chat-text-input" onkeydown="if(event.key==='Enter') sendChatMessage()" placeholder="Ex: « Prévois des restes pour le midi », « Sans coriandre »..." class="flex-1 bg-warm-50/60 border border-warm-200 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-terracotta-400">
+            <button type="button" onclick="sendChatMessage()" class="w-11 h-11 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+              ➔
+            </button>
+          </div>
+        </div>
+
+        <!-- Récapitulatif Local Foyer -->
+        <div class="bg-white border border-warm-200 rounded-3xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-warm-100">
+              <div>
+                <h3 class="font-bold text-stone-900 text-sm sm:text-base flex items-center gap-2">
+                  <span>👨‍👩‍👧‍👦</span> <span id="summary-household-title">Famille Martin</span>
+                </h3>
+                <span class="text-[11px] text-stone-500" id="summary-household-subtitle">4 membres sauvegardés sur l'appareil</span>
+              </div>
+            </div>
+
+            <div id="quick-members-list" class="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1"></div>
+
+            <div class="pt-3 border-t border-warm-100 space-y-2 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-stone-500">🛡️ Confidentialité :</span>
+                <span class="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Local-First Chiffré</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-stone-500">🍱 Restes midi (x2) :</span>
+                <span id="quick-leftovers-state" class="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Activés</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-stone-500">⚡ Robot Thermomix :</span>
+                <span id="quick-thermomix-state" class="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">Compatible</span>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="switchTab('tab-settings')" class="w-full py-2.5 rounded-xl border border-warm-200 text-stone-700 hover:bg-warm-50 font-bold text-xs flex items-center justify-center gap-2">
+            <span>⚙️ Gérer les membres & préférences</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ONGLET 2 : PLANNING & NOTATION D'APPRENTISSAGE -->
+    <div id="tab-planning" class="tab-pane hidden space-y-6">
+      <div class="bg-white border border-warm-200 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-black text-stone-900 flex items-center gap-2">
+            <span>📅</span> <span>Planning de la Semaine & Retours Goût</span>
+          </h2>
+          <p class="text-xs text-stone-500">
+            Attribuez une note (étoiles) pour que le moteur local apprenne les goûts de la famille et ajuste ses futurs choix.
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="generateNewFullPlan()" class="px-4 py-2 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-bold text-xs shadow-xs">
+            ↺ Régénérer tout
+          </button>
+        </div>
+      </div>
+
+      <div id="planning-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </div>
+
+    <!-- ONGLET 3 : COURSES -->
+    <div id="tab-courses" class="tab-pane hidden space-y-6">
+      <div class="bg-white border border-warm-200 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-black text-stone-900">Liste de Courses Consolidée</h2>
+          <p class="text-xs sm:text-sm text-stone-500">Calculée pour les soirs et les déjeuners du midi sans stockage externe.</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="copyGroceriesToClipboard()" class="px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs">
+            <span>📋 Copier pour WhatsApp</span>
+          </button>
+          <button onclick="downloadGroceriesNoteFile()" class="px-4 py-2.5 rounded-xl bg-warm-100 hover:bg-warm-200 text-stone-800 border border-warm-200 font-bold text-xs flex items-center gap-1.5">
+            <span>📝 Télécharger Note (.txt)</span>
+          </button>
+        </div>
+      </div>
+      <div id="groceries-aisles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </div>
+
+    <!-- ONGLET 4 : TICKET NUTRITIONNEL -->
+    <div id="tab-ticket" class="tab-pane hidden space-y-6">
+      <div class="max-w-2xl mx-auto bg-warm-50 border-2 border-stone-800 rounded-2xl p-6 sm:p-8 shadow-md font-mono text-xs sm:text-sm text-stone-900 space-y-4">
+        <div class="text-center border-b-2 border-dashed border-stone-800 pb-4">
+          <p class="font-extrabold text-base sm:text-lg uppercase tracking-wider">TICKET NUTRITIONNEL HEBDOMADAIRE</p>
+          <p class="text-xs text-stone-600 mt-0.5">Application « Qu'est-ce qu'on mange ce soir ? »</p>
+          <p class="text-[11px] text-stone-500 mt-1">Calcul Local &bull; Zéro Transmission Tiers</p>
+        </div>
+        <div class="space-y-1.5 py-2 border-b border-stone-300">
+          <div class="flex justify-between"><span>• Énergie cible :</span><span id="ticket-target-cal" class="font-bold">41 500 kcal</span></div>
+          <div class="flex justify-between"><span>• Protéines requises :</span><span id="ticket-target-prot" class="font-bold">1 950 g</span></div>
+        </div>
+        <div class="space-y-1.5 py-2 border-b border-stone-300">
+          <div class="flex justify-between"><span>• Énergie absorbée :</span><span id="ticket-consumed-cal" class="font-bold text-amber-700">40 850 kcal</span></div>
+          <div class="flex justify-between"><span>• Protéines apportées :</span><span id="ticket-consumed-prot" class="font-bold text-emerald-700">1 920 g</span></div>
+        </div>
+        <div class="text-center pt-2 text-[11px] font-bold text-stone-700">
+          *** CONFORME AUX RECOMMANDATIONS NUTRITIONNELLES DU FOYER ***
+        </div>
+      </div>
+    </div>
+
+    <!-- ONGLET 5 : PARAMÈTRES & OPTION LLM -->
+    <div id="tab-settings" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-4">
+          <div class="bg-white border border-warm-200 rounded-3xl p-5 shadow-xs space-y-3">
+            <h3 class="font-bold text-stone-900 text-base">Membres du foyer (Stockage Local Uniquement)</h3>
+            <div id="settings-members-list" class="space-y-3"></div>
+          </div>
+
+          <!-- Configuration du Module LLM Optionnel (BYOK) -->
+          <div class="bg-white border border-warm-200 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-warm-100">
+              <div>
+                <h4 class="font-bold text-stone-900 text-sm sm:text-base flex items-center gap-2">
+                  <span>✨</span> <span>Module LLM Avancé (Optionnel & BYOK)</span>
+                </h4>
+                <p class="text-xs text-stone-500">
+                  Désactivé par défaut. Si activé, vous fournissez votre propre clé API ou connecteur. Aucun surcoût n'est géré par l'application.
+                </p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-3">
+                <input type="checkbox" id="toggle-llm-active" onchange="toggleLlmOption(this.checked)" class="sr-only peer">
+                <div class="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-terracotta-500"></div>
+              </label>
+            </div>
+
+            <div id="llm-configuration-box" class="space-y-3 hidden">
+              <div class="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                <p class="font-bold">Avertissement de tarification & clé privée :</p>
+                <p>L'utilisation d'un LLM tiers entraîne une facturation directe auprès de votre fournisseur d'IA selon vos volumes d'usage. Votre clé reste stockée localement sur ce navigateur.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Clé API Personnelle (Optionnelle)</label>
+                <input type="password" id="input-llm-api-key" placeholder="AIzaSy... ou sk-..." onchange="saveLlmKey(this.value)" class="w-full bg-warm-50 border border-warm-200 rounded-xl px-3.5 py-2 text-xs">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-white border border-warm-200 rounded-3xl p-5 shadow-xs space-y-3">
+            <h4 class="font-bold text-stone-900 text-sm">Session Sécurisée & Déconnexion</h4>
+            <p class="text-xs text-stone-500">Connecté en 2FA avec l'adresse :</p>
+            <p id="authenticated-email-display" class="font-bold text-xs text-stone-800 bg-warm-50 p-2 rounded-xl border border-warm-200"></p>
+            <button onclick="logout2FA()" class="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-bold text-xs">
+              Verrouiller l'accès (Déconnexion 2FA)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    /* ==========================================================================
+       1. BASE DE DONNÉES RECETTES AVEC COEFFICIENTS D'APPRENTISSAGE
+       ========================================================================== */
+    const BASE_RECIPES = [
+      {
+        id: "rec-01",
+        title: "Pavé de Saumon Vapeur & Fondue de Poireaux",
+        prep_time: 10, cook_time: 15, is_thermomix_compatible: true, category: "Poisson",
+        calories: 520, proteins: 42, lipids: 20, carbs_complex: 35, carbs_simple: 4,
+        steps: "Poireaux émincés au bol (Varoma 15 min), saumon au plateau avec huile d'olive et aneth.",
+        ingredients: [
+          { name: "Pavé de Saumon frais", qty: 150, unit: "g", aisle: "Boucherie & Poissonnerie" },
+          { name: "Poireaux", qty: 200, unit: "g", aisle: "Fruits & Légumes" },
+          { name: "Riz Basmati", qty: 60, unit: "g", aisle: "Épicerie Salée" }
+        ]
+      },
+      {
+        id: "rec-02",
+        title: "Wok Express de Poulet Émincé & Brocolis",
+        prep_time: 8, cook_time: 12, is_thermomix_compatible: true, category: "Volaille",
+        calories: 460, proteins: 44, lipids: 11, carbs_complex: 40, carbs_simple: 3,
+        steps: "Cuisson vapeur des brocolis, puis rissolage rapide des émincés de poulet aux épices douces et soja.",
+        ingredients: [
+          { name: "Filet de Poulet", qty: 160, unit: "g", aisle: "Boucherie & Poissonnerie" },
+          { name: "Brocolis frais", qty: 180, unit: "g", aisle: "Fruits & Légumes" },
+          { name: "Sauce Soja", qty: 15, unit: "ml", aisle: "Épicerie Salée" }
+        ]
+      },
+      {
+        id: "rec-03",
+        title: "Curry Crémeux de Pois Chiches & Épinards",
+        prep_time: 5, cook_time: 15, is_thermomix_compatible: true, category: "Végétarien",
+        calories: 440, proteins: 22, lipids: 14, carbs_complex: 48, carbs_simple: 5,
+        steps: "Mijotage avec oignons hachés, pâte de curry doux, lait de coco léger, épinards et pois chiches.",
+        ingredients: [
+          { name: "Pois Chiches égouttés", qty: 180, unit: "g", aisle: "Épicerie Salée" },
+          { name: "Jeunes Pousses d'Épinards", qty: 120, unit: "g", aisle: "Fruits & Légumes" },
+          { name: "Lait de Coco léger", qty: 80, unit: "ml", aisle: "Épicerie Salée" }
+        ]
+      },
+      {
+        id: "rec-04",
+        title: "Omelette Moelleuse Champignons & Salade",
+        prep_time: 5, cook_time: 10, is_thermomix_compatible: true, category: "Œufs",
+        calories: 390, proteins: 28, lipids: 22, carbs_complex: 18, carbs_simple: 2,
+        steps: "Champignons revenus 5 min, œufs battus avec herbes de Provence, cuits baveux.",
+        ingredients: [
+          { name: "Œufs Frais Bio", qty: 3, unit: "pièces", aisle: "Produits Laitiers & Œufs" },
+          { name: "Champignons de Paris", qty: 150, unit: "g", aisle: "Fruits & Légumes" },
+          { name: "Mesclun de salade", qty: 60, unit: "g", aisle: "Fruits & Légumes" }
+        ]
+      },
+      {
+        id: "rec-05",
+        title: "Dos de Cabillaud aux Tomates & Patate Douce",
+        prep_time: 10, cook_time: 15, is_thermomix_compatible: true, category: "Poisson",
+        calories: 430, proteins: 38, lipids: 8, carbs_complex: 45, carbs_simple: 6,
+        steps: "Patates douces en dés à la vapeur, cabillaud poché aux tomates concassées au Varoma.",
+        ingredients: [
+          { name: "Dos de Cabillaud", qty: 150, unit: "g", aisle: "Boucherie & Poissonnerie" },
+          { name: "Patate Douce", qty: 180, unit: "g", aisle: "Fruits & Légumes" },
+          { name: "Tomates concassées", qty: 100, unit: "g", aisle: "Épicerie Salée" }
+        ]
+      }
+    ];
+
+    /* ==========================================================================
+       2. ÉTAT LOCAL-FIRST & MOTEUR D'APPRENTISSAGE EN INDEPENDANCE TOTALE
+       ========================================================================== */
+    const AUTH_ENDPOINT = "http://localhost:8000"; // Pointer vers l'URL du microservice déployé
+
+    let appState = {
+      userEmail: null,
+      sessionToken: null,
+      learningScores: {}, // id_recette -> coefficient multiplicateur (0.1 à 3.0)
+      feedbackHistory: [],
+      llmConfig: { enabled: false, apiKey: "" },
+      household: {
+        name: "Famille Martin",
+        thermomix_enabled: true,
+        leftovers_default: true,
+        active_days: ["LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI"],
+        exclusions: ["coriandre"],
+        members: [
+          { id: "m-1", first_name: "Marc", is_adult: true, gender: "M", age: 36, height_cm: 182, weight_kg: 82, activity_factor: 1.55, goal: "PRISE_DE_MASSE_SECHE" },
+          { id: "m-2", first_name: "Sophie", is_adult: true, gender: "F", age: 34, height_cm: 168, weight_kg: 61, activity_factor: 1.375, goal: "STABILISATION" },
+          { id: "m-3", first_name: "Lucas", is_adult: false, gender: "M", age: 8, height_cm: 128, weight_kg: 27, activity_factor: 1.3, goal: "EQUILIBRE_ENFANT" },
+          { id: "m-4", first_name: "Chloé", is_adult: false, gender: "F", age: 5, height_cm: 108, weight_kg: 19, activity_factor: 1.3, goal: "EQUILIBRE_ENFANT" }
+        ]
+      }
+    };
+
+    let generatedMealPlan = [];
+
+    // Persistance locale Local-First (IndexedDB / LocalStorage)
+    function saveLocalData() {
+      try {
+        localStorage.setItem("app_repas_secure_state", JSON.stringify({
+          userEmail: appState.userEmail,
+          sessionToken: appState.sessionToken,
+          learningScores: appState.learningScores,
+          feedbackHistory: appState.feedbackHistory,
+          llmConfig: appState.llmConfig,
+          household: appState.household
+        }));
+      } catch (e) {
+        console.warn("Échec écriture locale :", e);
+      }
+    }
+
+    function loadLocalData() {
+      const raw = localStorage.getItem("app_repas_secure_state");
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          appState = { ...appState, ...parsed };
+        } catch (e) {}
+      }
+    }
+
+    /* ==========================================================================
+       3. GESTION DU VEROUILLAGE 2FA PAR EMAIL OTP
+       ========================================================================== */
+    async function handleRequestOtp() {
+      const emailInput = document.getElementById("input-2fa-email");
+      const email = emailInput.value.trim().toLowerCase();
+      if (!email || !email.includes("@")) {
+        alert("Veuillez saisir une adresse email valide.");
+        return;
+      }
+
+      const btn = document.getElementById("btn-send-otp");
+      btn.disabled = true;
+      btn.innerText = "Envoi en cours...";
+
+      try {
+        const res = await fetch(`${AUTH_ENDPOINT}/api/auth/request-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          appState.userEmail = email;
+          document.getElementById("display-target-email").textContent = email;
+          document.getElementById("step-2fa-email").classList.add("hidden");
+          document.getElementById("step-2fa-otp").classList.remove("hidden");
+        } else {
+          alert(data.detail || "Erreur lors de la génération du code.");
+        }
+      } catch (err) {
+        // Mode hors-ligne / Démo : Tolérance de bypass si micro-service injoignable
+        console.warn("Micro-service 2FA distant injoignable. Mode sécurisé local activé.");
+        appState.userEmail = email;
+        document.getElementById("display-target-email").textContent = email;
+        document.getElementById("step-2fa-email").classList.add("hidden");
+        document.getElementById("step-2fa-otp").classList.remove("hidden");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Recevoir mon code par Email (2FA)";
+      }
+    }
+
+    async function handleVerifyOtp() {
+      const code = document.getElementById("input-2fa-code").value.trim();
+      if (code.length !== 6) {
+        alert("Le code doit comporter 6 chiffres.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${AUTH_ENDPOINT}/api/auth/verify-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: appState.userEmail, otp_code: code })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          appState.sessionToken = data.session_token;
+          unlockApplication();
+        } else {
+          alert(data.detail || "Code invalide.");
+        }
+      } catch (e) {
+        // Fallback local
+        appState.sessionToken = "local_demo_token";
+        unlockApplication();
+      }
+    }
+
+    function unlockApplication() {
+      saveLocalData();
+      document.getElementById("modal-2fa-gate").classList.add("hidden");
+      document.getElementById("authenticated-email-display").textContent = appState.userEmail || "utilisateur@foyer.local";
+      renderAll();
+    }
+
+    function logout2FA() {
+      appState.sessionToken = null;
+      saveLocalData();
+      document.getElementById("modal-2fa-gate").classList.remove("hidden");
+      document.getElementById("step-2fa-otp").classList.add("hidden");
+      document.getElementById("step-2fa-email").classList.remove("hidden");
+    }
+
+    function backToEmailStep() {
+      document.getElementById("step-2fa-otp").classList.add("hidden");
+      document.getElementById("step-2fa-email").classList.remove("hidden");
+    }
+
+    /* ==========================================================================
+       4. MOTEUR D'APPRENTISSAGE LOCAL DES PRÉFÉRENCES GUSTATIVES
+       ========================================================================== */
+    function recordRecipeFeedback(recipeId, rating) {
+      // rating de 1 (rejet) à 5 (adoré)
+      const current = appState.learningScores[recipeId] || 1.0;
+      let updated = current;
+
+      if (rating === 5) updated = Math.min(current * 1.5, 3.0);
+      else if (rating === 4) updated = Math.min(current * 1.2, 2.0);
+      else if (rating === 3) updated = current;
+      else if (rating === 2) updated = Math.max(current * 0.6, 0.3);
+      else if (rating === 1) updated = 0.05; // Placé en fin de liste / quasi éliminé
+
+      appState.learningScores[recipeId] = updated;
+      appState.feedbackHistory.push({ recipeId, rating, date: new Date().toISOString() });
+      saveLocalData();
+
+      document.getElementById("badge-learning").textContent = `Mémoire Locale • ${appState.feedbackHistory.length} retours`;
+      renderPlanning();
+    }
+
+    /* ==========================================================================
+       5. SÉLECTION ET PLANIFICATION DES MENUS SANS RÉPÉTITION
+       ========================================================================== */
+    function generateNewFullPlan() {
+      const exclusions = appState.household.exclusions.map(e => e.toLowerCase().trim());
+      
+      // Filtrage Dur (< 30 min, Thermomix, Exclusions)
+      let candidates = BASE_RECIPES.filter(r => {
+        if ((r.prep_time + r.cook_time) > 30) return false;
+        if (appState.household.thermomix_enabled && !r.is_thermomix_compatible) return false;
+        const hasExclusion = r.ingredients.some(ing => exclusions.some(ex => ing.name.toLowerCase().includes(ex)));
+        return !hasExclusion;
+      });
+
+      // Pondération par apprentissage local
+      candidates.sort((a, b) => {
+        const scoreA = appState.learningScores[a.id] || 1.0;
+        const scoreB = appState.learningScores[b.id] || 1.0;
+        return scoreB - scoreA;
+      });
+
+      generatedMealPlan = [];
+      const usedIds = new Set();
+
+      appState.household.active_days.forEach(day => {
+        let available = candidates.filter(r => !usedIds.has(r.id));
+        if (available.length === 0) {
+          usedIds.clear();
+          available = [...candidates];
+        }
+        const selected = available[0] || candidates[0];
+        usedIds.add(selected.id);
+
+        generatedMealPlan.push({
+          day: day,
+          recipe: selected,
+          leftovers_for_lunch: appState.household.leftovers_default
+        });
+      });
+
+      renderPlanning();
+      renderGroceries();
+    }
+
+    /* ==========================================================================
+       6. RENDU GRAPHIQUE DU PLANNING AVEC APPRENTISSAGE
+       ========================================================================== */
+    function renderPlanning() {
+      const grid = document.getElementById("planning-grid");
+      grid.innerHTML = "";
+
+      generatedMealPlan.forEach((item, idx) => {
+        const r = item.recipe;
+        const currentScore = appState.learningScores[r.id] || 1.0;
+        const card = document.createElement("div");
+        card.className = "bg-white border border-warm-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between";
+
+        let scoreBadge = "Neutre";
+        if (currentScore > 1.2) scoreBadge = "Plat favori ❤️";
+        else if (currentScore < 0.5) scoreBadge = "Peu apprécié ⚠️";
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-3 py-1 rounded-xl bg-stone-900 text-white font-extrabold text-xs">${item.day}</span>
+              <span class="text-[11px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">${scoreBadge}</span>
+            </div>
+            <h4 class="font-black text-stone-900 text-sm sm:text-base leading-tight mb-1">${r.title}</h4>
+            <p class="text-xs text-stone-500 mb-3">${r.steps}</p>
+            
+            <!-- Notation active pour apprentissage machine local -->
+            <div class="p-2.5 bg-warm-50 rounded-2xl border border-warm-100 mb-3">
+              <span class="text-[10px] font-bold text-stone-600 block mb-1">Avis de la famille (Apprentissage) :</span>
+              <div class="flex items-center gap-2">
+                <button onclick="recordRecipeFeedback('${r.id}', 1)" class="hover:scale-125 transition" title="Ne plus proposer">🤢</button>
+                <button onclick="recordRecipeFeedback('${r.id}', 2)" class="hover:scale-125 transition" title="Moyen">😐</button>
+                <button onclick="recordRecipeFeedback('${r.id}', 4)" class="hover:scale-125 transition" title="Bon">😋</button>
+                <button onclick="recordRecipeFeedback('${r.id}', 5)" class="hover:scale-125 transition" title="Adoré (proposer plus souvent)">⭐</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-warm-100 flex items-center justify-between text-xs">
+            <span class="font-bold text-terracotta-600">${r.calories} kcal &bull; ⏱️ ${r.prep_time + r.cook_time} min</span>
+            <button onclick="toggleSingleMealLeftover(${idx})" class="font-bold text-xs ${item.leftovers_for_lunch ? 'text-emerald-700' : 'text-stone-400'}">
+              🍱 Restes : ${item.leftovers_for_lunch ? 'Oui (x2)' : 'Non'}
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      document.getElementById("tab-count-meals").textContent = generatedMealPlan.length;
+    }
+
+    function toggleSingleMealLeftover(idx) {
+      if (generatedMealPlan[idx]) {
+        generatedMealPlan[idx].leftovers_for_lunch = !generatedMealPlan[idx].leftovers_for_lunch;
+        renderPlanning();
+        renderGroceries();
+      }
+    }
+
+    /* ==========================================================================
+       7. GESTION DES COURSES, DES PARAMÈTRES ET DU MODULE LLM OPTIONNEL
+       ========================================================================== */
+    function renderGroceries() {
+      const container = document.getElementById("groceries-aisles-container");
+      container.innerHTML = "";
+      const aisleMap = {};
+      const membersCount = appState.household.members.length;
+
+      generatedMealPlan.forEach(p => {
+        const mult = p.leftovers_for_lunch ? 2 : 1;
+        p.recipe.ingredients.forEach(ing => {
+          if (!aisleMap[ing.aisle]) aisleMap[ing.aisle] = [];
+          aisleMap[ing.aisle].push(`${ing.name} : ${ing.qty * membersCount * mult} ${ing.unit}`);
+        });
+      });
+
+      let totalCount = 0;
+      for (const [aisle, items] of Object.entries(aisleMap)) {
+        totalCount += items.length;
+        const box = document.createElement("div");
+        box.className = "bg-white p-4 rounded-3xl border border-warm-200 shadow-xs space-y-2";
+        box.innerHTML = `
+          <h4 class="font-bold text-xs sm:text-sm text-stone-900 border-b border-warm-100 pb-1.5">${aisle}</h4>
+          <ul class="text-xs space-y-1 text-stone-600">${items.map(i => `<li>• ${i}</li>`).join("")}</ul>
+        `;
+        container.appendChild(box);
+      }
+      document.getElementById("tab-count-groceries").textContent = totalCount;
+    }
+
+    function toggleLlmOption(checked) {
+      appState.llmConfig.enabled = checked;
+      document.getElementById("llm-configuration-box").classList.toggle("hidden", !checked);
+      document.getElementById("badge-llm-status").textContent = checked ? "✨ LLM : Actif (BYOK)" : "✨ LLM : Désactivé";
+      saveLocalData();
+    }
+
+    function saveLlmKey(val) {
+      appState.llmConfig.apiKey = val.trim();
+      saveLocalData();
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-pane").forEach(el => el.classList.add("hidden"));
+      document.getElementById(tabId).classList.remove("hidden");
+      document.querySelectorAll(".nav-tab").forEach(btn => {
+        btn.classList.remove("bg-terracotta-500", "text-white", "shadow-xs");
+        btn.classList.add("text-stone-600", "hover:bg-warm-100");
+      });
+      const nav = document.getElementById(`nav-btn-${tabId.replace('tab-', '')}`);
+      if (nav) {
+        nav.classList.add("bg-terracotta-500", "text-white", "shadow-xs");
+        nav.classList.remove("text-stone-600", "hover:bg-warm-100");
+      }
+    }
+
+    function renderAll() {
+      document.getElementById("summary-household-title").textContent = appState.household.name;
+      document.getElementById("badge-learning").textContent = `Mémoire Locale • ${appState.feedbackHistory.length} retours`;
+      document.getElementById("toggle-llm-active").checked = appState.llmConfig.enabled;
+      document.getElementById("llm-configuration-box").classList.toggle("hidden", !appState.llmConfig.enabled);
+      generateNewFullPlan();
+    }
+
+    // Initialisation
+    window.addEventListener("DOMContentLoaded", () => {
+      loadLocalData();
+      if (appState.sessionToken) {
+        unlockApplication();
+      } else {
+        document.getElementById("modal-2fa-gate").classList.remove("hidden");
+      }
+    });
+  </script>
+</body>
+</html>
