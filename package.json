@@ -1,0 +1,62 @@
+{
+"name": "repas-ce-soir",
+"productName": "Qu'est-ce qu'on mange ce soir",
+"version": "1.0.0",
+"description": "Application Desktop Familiale - Planning Express de Repas et Nutrition Local-First",
+"main": "main.js",
+"scripts": {
+"start": "electron .",
+"make": "electron-forge make",
+"package": "electron-forge package"
+},
+"keywords": [
+"repas",
+"planning",
+"famille",
+"nutrition",
+"local-first",
+"thermomix"
+],
+"author": "Famille Locale",
+"license": "MIT",
+"devDependencies": {
+"@electron-forge/cli": "^7.3.0",
+"@electron-forge/maker-dmg": "^7.3.0",
+"@electron-forge/maker-squirrel": "^7.3.0",
+"@electron-forge/maker-zip": "^7.3.0",
+"@electron-forge/plugin-auto-unpack-natives": "^7.3.0",
+"electron": "^29.1.5"
+},
+"config": {
+"forge": {
+"packagerConfig": {
+"name": "Qu'est-ce qu'on mange ce soir",
+"executableName": "repas-ce-soir",
+"asar": true
+},
+"makers": [
+{
+"name": "@electron-forge/maker-squirrel",
+"config": {
+"name": "repas_ce_soir",
+"setupExe": "RepasCeSoir-Setup.exe"
+}
+},
+{
+"name": "@electron-forge/maker-dmg",
+"config": {
+"name": "RepasCeSoir",
+"format": "ULFO"
+}
+},
+{
+"name": "@electron-forge/maker-zip",
+"platforms": [
+"darwin",
+"win32"
+]
+}
+]
+}
+}
+}
