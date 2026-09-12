@@ -1,0 +1,60 @@
+name: Build Desktop Installers (.exe & .dmg)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Compiler le fichier .EXE (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Récupérer le code source
+        uses: actions/checkout@v4
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Installer les dépendances
+        run: npm ci || npm install
+
+      - name: Compiler le package Windows (.exe)
+        run: npm run make -- --platform=win32
+
+      - name: Uploader l'installeur Windows (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Installeur-Windows-EXE
+          path: out/make/squirrel.windows/x64/*.exe
+
+  build-macos:
+    name: Compiler l'image .DMG (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Récupérer le code source
+        uses: actions/checkout@v4
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Installer les dépendances
+        run: npm ci || npm install
+
+      - name: Compiler le package macOS (.dmg)
+        run: npm run make -- --platform=darwin
+
+      - name: Uploader l'installeur macOS (.dmg)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Installeur-Mac-DMG
+          path: out/make/**/*.dmg
